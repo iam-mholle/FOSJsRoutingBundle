@@ -27,5 +27,10 @@
             <argument type="service" id="router" />
             <tag name="console.command" />
         </service>
+        <service id="Symfony\Component\Security\Core\Role\RoleHierarchyInterface" alias="security.role_hierarchy"
+                 public="false"/>
+        <service id="Symfony\Component\Security\Http\AccessMapInterface" alias="security.access_map" public="false"/>
+        <service id="Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface"
+                 alias="security.token_storage" public="false"/>
     </services>
 </container>
