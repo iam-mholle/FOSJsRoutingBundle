@@ -11,10 +11,10 @@
 
 namespace FOS\JsRoutingBundle\Extractor;
 
+use JMS\I18nRoutingBundle\Router\I18nLoader;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
-use JMS\I18nRoutingBundle\Router\I18nLoader;
 
 /**
  * @author      William DURAND <william.durand1@gmail.com>
@@ -42,21 +42,41 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
      * @var array
      */
     protected $routesToExpose;
+    /**
+     * @var AccessMapInterface
+     */
+    private $accessMap;
+    /**
+     * @var RoleHierarchyInterface
+     */
+    private $hierarchy;
+    /**
+     * @var TokenStorageInterface
+     */
+    private $tokenStorage;
 
     /**
      * Default constructor.
      *
-     * @param RouterInterface $router         The router.
-     * @param array           $routesToExpose Some route names to expose.
-     * @param string          $cacheDir
-     * @param array           $bundles        list of loaded bundles to check when generating the prefix
+     * @param RouterInterface        $router         The router.
+     * @param array                  $routesToExpose Some route names to expose.
+     * @param string                 $cacheDir
+     * @param array                  $bundles        list of loaded bundles to check when generating the prefix
+     * @param AccessMapInterface     $accessMap
+     * @param RoleHierarchyInterface $hierarchy
+     * @param TokenStorageInterface  $tokenStorage
      */
-    public function __construct(RouterInterface $router, array $routesToExpose = array(), $cacheDir, $bundles = array())
+    public function __construct(
+        RouterInterface $router, array $routesToExpose = array (), $cacheDir, $bundles = array (), AccessMapInterface $accessMap,
+        RoleHierarchyInterface $hierarchy, TokenStorageInterface $tokenStorage)
     {
-        $this->router         = $router;
+        $this->router = $router;
         $this->routesToExpose = $routesToExpose;
-        $this->cacheDir       = $cacheDir;
-        $this->bundles        = $bundles;
+        $this->cacheDir = $cacheDir;
+        $this->bundles = $bundles;
+        $this->accessMap = $accessMap;
+        $this->hierarchy = $hierarchy;
+        $this->tokenStorage = $tokenStorage;
     }
 
     /**
@@ -65,10 +85,11 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
     public function getRoutes()
     {
         $collection = $this->router->getRouteCollection();
-        $routes     = new RouteCollection();
+        $routes = new RouteCollection();
 
         /** @var Route $route */
         foreach ($collection->all() as $name => $route) {
+            $roles = $this->getRolesForRoute($route);
             if ($this->isRouteExposed($route, $name)) {
                 $routes->add($name, $route);
             }
@@ -91,7 +112,7 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
     public function getPrefix($locale)
     {
         if (isset($this->bundles['JMSI18nRoutingBundle'])) {
-            return $locale . I18nLoader::ROUTING_PREFIX;
+            return $locale.I18nLoader::ROUTING_PREFIX;
         }
 
         return '';
@@ -104,8 +125,7 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
     {
         $requestContext = $this->router->getContext();
 
-        $host = $requestContext->getHost() .
-            ('' === $this->getPort() ? $this->getPort() : ':' . $this->getPort());
+        $host = $requestContext->getHost().('' === $this->getPort() ? $this->getPort() : ':'.$this->getPort());
 
         return $host;
     }
@@ -117,7 +137,7 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
     {
         $requestContext = $this->router->getContext();
 
-        $port="";
+        $port = "";
         if ($this->usesNonStandardPort()) {
             $method = sprintf('get%sPort', ucfirst($requestContext->getScheme()));
             $port = $requestContext->$method();
@@ -139,15 +159,15 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
      */
     public function getCachePath($locale)
     {
-        $cachePath = $this->cacheDir . DIRECTORY_SEPARATOR . 'fosJsRouting';
+        $cachePath = $this->cacheDir.DIRECTORY_SEPARATOR.'fosJsRouting';
         if (!file_exists($cachePath)) {
             mkdir($cachePath);
         }
 
         if (isset($this->bundles['JMSI18nRoutingBundle'])) {
-            $cachePath = $cachePath . DIRECTORY_SEPARATOR . 'data.' . $locale . '.json';
+            $cachePath = $cachePath.DIRECTORY_SEPARATOR.'data.'.$locale.'.json';
         } else {
-            $cachePath = $cachePath . DIRECTORY_SEPARATOR . 'data.json';
+            $cachePath = $cachePath.DIRECTORY_SEPARATOR.'data.json';
         }
 
         return $cachePath;
@@ -170,7 +190,7 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
 
         return true === $route->getOption('expose')
             || 'true' === $route->getOption('expose')
-            || ('' !== $pattern && preg_match('#' . $pattern . '#', $name));
+            || ('' !== $pattern && preg_match('#'.$pattern.'#', $name));
     }
 
     /**
@@ -180,9 +200,9 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
      */
     protected function buildPattern()
     {
-        $patterns = array();
+        $patterns = array ();
         foreach ($this->routesToExpose as $toExpose) {
-            $patterns[] = '(' . $toExpose . ')';
+            $patterns[] = '('.$toExpose.')';
         }
 
         return implode($patterns, '|');
@@ -216,5 +236,15 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
     private function usesNonStandardHttpsPort()
     {
         return 'https' === $this->getScheme() && '443' != $this->router->getContext()->getHttpsPort();
+    }
+
+    private function getRolesForRoute(Route $route)
+    {
+        $path = $route->getPath();
+        $request = Request::create($path, 'GET');
+
+        list($roles, $channel) = $this->accessMap->getPatterns($request);
+
+        return $roles;
     }
 }
