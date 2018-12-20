@@ -75,7 +75,9 @@ class Controller
             $session->getFlashBag()->setAll($session->getFlashBag()->peekAll());
         }
 
-        $cache = new ConfigCache($this->exposedRoutesExtractor->getCachePath($request->getLocale()), $this->debug);
+        $userRoleHash = md5(serialize($this->exposedRoutesExtractor->getLoggedInUserRoles()));
+
+        $cache = new ConfigCache($this->exposedRoutesExtractor->getCachePath($request->getLocale()).$userRoleHash, $this->debug);
 
         if (!$cache->isFresh()) {
             $exposedRoutes    = $this->exposedRoutesExtractor->getRoutes();

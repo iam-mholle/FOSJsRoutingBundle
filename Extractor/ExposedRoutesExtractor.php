@@ -91,13 +91,13 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
         $collection = $this->router->getRouteCollection();
         $routes = new RouteCollection();
 
-        $user = $this->tokenStorage->getToken()->getUser();
-        $userRoles = $user->getRoles();
+        $userRoles = $this->getLoggedInUserRoles();
 
         /** @var Route $route */
         foreach ($collection->all() as $name => $route) {
             $roles = $this->getRolesForRoute($route);
-            if ($this->isRouteExposed($route, $name) && ($roles == null || count(array_intersect($roles, $userRoles)) > 0)) {
+            if ($this->isRouteExposed($route, $name)
+                && ($roles == null || $userRoles != null && count(array_intersect($roles, $userRoles)) > 0)) {
                 $routes->add($name, $route);
             }
         }
@@ -253,5 +253,14 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
         list($roles, $channel) = $this->accessMap->getPatterns($request);
 
         return $roles;
+    }
+
+    public function getLoggedInUserRoles()
+    {
+        $token = $this->tokenStorage->getToken();
+        if ($token == null) return null;
+        $user = $token->getUser();
+        if ($user == null || is_string($user)) return null;
+        return $user->getRoles();
     }
 }
