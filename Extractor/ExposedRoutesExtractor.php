@@ -97,7 +97,7 @@ class ExposedRoutesExtractor implements ExposedRoutesExtractorInterface
         /** @var Route $route */
         foreach ($collection->all() as $name => $route) {
             $roles = $this->getRolesForRoute($route);
-            if ($this->isRouteExposed($route, $name) && ($roles == null || array_intersect($roles, $userRoles) > 0)) {
+            if ($this->isRouteExposed($route, $name) && ($roles == null || count(array_intersect($roles, $userRoles)) > 0)) {
                 $routes->add($name, $route);
             }
         }
