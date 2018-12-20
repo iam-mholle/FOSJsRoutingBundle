@@ -13,6 +13,9 @@
             <argument></argument>
             <argument>%kernel.cache_dir%</argument>
             <argument>%kernel.bundles%</argument>
+            <argument type="service" id="security.access_map"/>
+            <argument type="service" id="security.role_hierarchy"/>
+            <argument type="service" id="security.token_storage"/>
         </service>
 
         <service id="fos_js_routing.dump_command" class="FOS\JsRoutingBundle\Command\DumpCommand">
@@ -27,10 +30,5 @@
             <argument type="service" id="router" />
             <tag name="console.command" />
         </service>
-        <service id="Symfony\Component\Security\Core\Role\RoleHierarchyInterface" alias="security.role_hierarchy"
-                 public="false"/>
-        <service id="Symfony\Component\Security\Http\AccessMapInterface" alias="security.access_map" public="false"/>
-        <service id="Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface"
-                 alias="security.token_storage" public="false"/>
     </services>
 </container>

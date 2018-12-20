@@ -12,9 +12,13 @@
 namespace FOS\JsRoutingBundle\Extractor;
 
 use JMS\I18nRoutingBundle\Router\I18nLoader;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
+use Symfony\Component\Security\Http\AccessMapInterface;
 
 /**
  * @author      William DURAND <william.durand1@gmail.com>
